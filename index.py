@@ -79,9 +79,6 @@ class N_Platform:
 platforms = []
 
 for i in range(2000):
-    # platforms.append(N_Platform(220, 10, 0))
-    # platforms.append(N_Platform(300, 10, 1))
-    # platforms.append(N_Platform(300, 10, 2))
     platforms.append(N_Platform(500 + i * 320, 10, 0))
     platforms.append(N_Platform(660 + i * 320, 10, 1))
     platforms.append(N_Platform(500 + i * 320, 10, 2))
@@ -100,14 +97,15 @@ points = 0
 # 07RRJ: 3129
 # ERROR: 3061
 
-clock_time = 70
+clock_time = 90
 # while run:
 for runing in range(50):
     score += int((((points) // 1000) - 40) * -2.1)
     print(runing, score, "+", int((((points) // 1000) - 40) * -2.1))
     points = 0
-    # if clock_time < 110:
-    clock_time += 1
+    # if clock_time < 150:
+        # clock_time += 3
+    # print(clock_time)
     for i in range(100):
         clock.tick(35)
         for event in pygame.event.get():
@@ -136,7 +134,7 @@ for runing in range(50):
         y += y_vel
 
         points += y
-        print(int(((y // 10) - 40) * -2.1))
+        # print(int(((y // 10) - 40) * -2.1))
 
         player_rect = pygame.Rect(x, y, PLAYER_WIDTH, PLAYER_HEIGHT)
 
@@ -173,10 +171,16 @@ for runing in range(50):
             y = HEIGHT - PLAYER_HEIGHT - 10
             y_vel = 0
             isJump = False
+        elif PLAYER_HEIGHT <= 10:
+            y = HEIGHT - PLAYER_HEIGHT - 10
+            y_vel = 0
+            y_vel += gravity
 
         # Drawing
         win.fill((50, 50, 50))
         pygame.draw.rect(win, COLOURS["GREEN"], pygame.Rect(0, 490, 500, 10))
+        win.fill((0, 50, 50))
+        pygame.draw.rect(win, COLOURS["GREEN"], pygame.Rect(0, 0, 500, 10))
         win.blit(player_img, (x, y))
         for platform in platforms:
             platform.display(win)
