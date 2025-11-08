@@ -94,7 +94,7 @@ points = 0
 #=============#
 
 # CAPITALIST: 3293
-# 07RRJ: 3129
+# 07RRJ: 3154
 # ERROR: 3061
 
 clock_time = 90
@@ -179,8 +179,8 @@ for runing in range(50):
         # Drawing
         win.fill((50, 50, 50))
         pygame.draw.rect(win, COLOURS["GREEN"], pygame.Rect(0, 490, 500, 10))
-        win.fill((0, 50, 50))
-        pygame.draw.rect(win, COLOURS["GREEN"], pygame.Rect(0, 0, 500, 10))
+        # win.fill((0, 0, 10))
+        # pygame.draw.rect(win, COLOURS["GREEN"], pygame.Rect(0, 0, 500, 10))
         win.blit(player_img, (x, y))
         for platform in platforms:
             platform.display(win)
