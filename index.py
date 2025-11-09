@@ -72,7 +72,7 @@ class N_Platform:
 # Initial platforms
 platforms = []
 
-random.seed(7)
+# random.seed(7)
 
 for i in range(2000): 
     rand = [random.randint(0, 2), random.randint(0, 2), random.randint(0, 2)] 
@@ -96,9 +96,7 @@ clock = pygame.time.Clock()
 score = 0
 points = 0
 
-max_speed = 130
-base_speed = 80
-difficulty_time = 0
+clock_time = 80
 
 #=============#
 # SCORE BOARD #
@@ -110,16 +108,16 @@ difficulty_time = 0
 # ERROR: 3061
 
 # with roof
-# 07RRJ: 
+# 07RRJ: 1988
 # CAPITALIST: 
 # ERROR: 
 
 for runing in range(50):
-    score += points//1000
+    score += points // 1000
     points = 0
-    clock_time = base_speed + (max_speed - base_speed) * (difficulty_time / 1000)**0.5
-    if clock_time > max_speed:
-        clock_time = max_speed
+    
+    if clock_time < 120:
+        clock_time += 1
     for i in range(100):
         clock.tick(40)
         for event in pygame.event.get():
