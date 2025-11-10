@@ -1,4 +1,4 @@
-import pygame, sys, os, random
+import pygame, sys, os, random, time
 from dataclasses import dataclass
 
 def get_game_folder():
@@ -24,15 +24,6 @@ text_font = pygame.font.SysFont("Arial", 30, bold=True)
 PLAYER_SIZE = 30
 player_img = pygame.image.load(os.path.join(images_folder, "player.png")).convert_alpha()
 player_img = pygame.transform.scale(player_img, (PLAYER_SIZE, PLAYER_SIZE))
-
-# Player initial position and movement variables (base resolution coordinates)
-player_x = BASE_WIDTH // 10 - PLAYER_SIZE // 2
-player_y = 400
-vel = 5
-y_vel = 0
-gravity = 1
-jump_power = 16
-isJump = False
 
 COLOURS = [
     (50, 170, 60),
@@ -65,102 +56,187 @@ class N_Platform:
     def display(self, screen):
         pygame.draw.rect(screen, self.colour, self.rect())
 
-# Generate platforms as before with base resolution coordinates
-platforms = []
-for i in range(2000):
-    rand = [random.randint(0, 2), random.randint(0, 2), random.randint(0, 2)]
-    for idx, item in enumerate(rand):
-        plat_x = 500 + i * 320 if idx in (0, 2) else 660 + i * 320
-        if item == 1:
-            platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][1]))
-        else:
-            if random.randint(0, 1):
-                platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][2]))
-                platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][0]))
+@dataclass
+class Button:
+    text: str
+    rect: pygame.Rect
+    color: tuple
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect)
+        label = text_font.render(self.text, True, (255, 255, 255))
+        label_rect = label.get_rect(center=self.rect.center)
+        screen.blit(label, label_rect)
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+def draw_start_screen(buttons):
+    win.fill((30, 30, 30))
+    title = text_font.render("Select Game Mode", True, (255, 255, 255))
+    win.blit(title, (BASE_WIDTH // 2 - title.get_width() // 2, 70))
+    for btn in buttons:
+        btn.draw(win)
+    pygame.display.flip()
+
+#=============#
+# SCORE BOARD #
+#=============#
+
+# 07RRJ: 2061.07
+# ERROR: 1814.05
+# CAPITALIST: 1379.73
+# PINTAN: 785.54
+
+def the_game(formula):
+    # Player initial position and movement variables (base resolution coordinates)
+    player_x = BASE_WIDTH // 10 - PLAYER_SIZE // 2
+    player_y = 350
+    vel = 5
+    y_vel = 0
+    gravity = 1
+    jump_power = 16
+    isJump = False
+
+    # Generate platforms as before with base resolution coordinates
+    platforms = []
+    for i in range(2000):
+        rand = [random.randint(0, 2), random.randint(0, 2), random.randint(0, 2)]
+        for idx, item in enumerate(rand):
+            plat_x = 500 + i * 320 if idx in (0, 2) else 660 + i * 320
+            if item == 1:
+                platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][1]))
             else:
-                platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][item]))
+                if random.randint(0, 1):
+                    platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][2]))
+                    platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][0]))
+                else:
+                    platforms.append(N_Platform(plat_x, 10, COLOURS[0], PLATFORM_Y[idx][item]))
 
-clock = pygame.time.Clock()
-score = 0
-points = 0
-clock_time = 80
-run = True
+    start_time = time.time()
+    run_time = start_time + 100
+    while run_time > start_time:
+        run_time -= 1
+        clock.tick(40)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+        win.fill((50, 50, 50))
+        score_text = text_font.render(f"start in: {(run_time - start_time)}", True, (255, 255, 255))
+        score_rect = score_text.get_rect()
+        score_rect.topright = (BASE_WIDTH / 2, BASE_HEIGHT / 2)
+        win.blit(score_text, score_rect)
+        pygame.display.update()
 
-# def the_game():
-for i in range(1000):
-    clock.tick(40)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
+    score = 0
+    clock_time = 80
+    start_time = time.time()
 
-    keys = pygame.key.get_pressed()
-    move_x = clock_time / 10
+    while eval(formula):
+        clock.tick(40)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
 
-    for platform in platforms:
-        platform.x -= move_x
+        keys = pygame.key.get_pressed()
+        move_x = clock_time / 10
 
-    if not isJump and keys[pygame.K_UP]:
-        isJump = True
-        y_vel = -jump_power
-    elif isJump and keys[pygame.K_DOWN]:
-        y_vel = jump_power
+        for platform in platforms:
+            platform.x -= move_x
 
-    y_vel += gravity
+        if not isJump and keys[pygame.K_UP]:
+            isJump = True
+            y_vel = -jump_power
+        elif isJump and keys[pygame.K_DOWN]:
+            y_vel = jump_power
 
-    # Simple vertical movement with collision (can add stepping logic if needed)
-    player_y += y_vel
-    player_rect = pygame.Rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE)
-
-    points += int((((BASE_HEIGHT - player_y) ** 1.12) - 100) / 1.9)
-
-    for platform in platforms:
-        plat_rect = platform.rect()
-        if player_rect.colliderect(plat_rect):
-            if y_vel > 0 and player_rect.bottom - y_vel <= plat_rect.top:
-                player_y = plat_rect.top - PLAYER_SIZE
-                y_vel = 0
-                isJump = False
-            elif y_vel < 0 and player_rect.top - y_vel >= plat_rect.bottom:
-                player_y = plat_rect.bottom
-                y_vel = 0
-
-    # Floor boundary
-    if player_y + PLAYER_SIZE >= BASE_HEIGHT - 10:
-        player_y = BASE_HEIGHT - PLAYER_SIZE - 10
-        y_vel = 0
-        isJump = False
-    elif player_y <= 10:
-        player_y = 10
-        y_vel = 0
         y_vel += gravity
 
-    # Draw
-    win.fill((50, 50, 50))
-    floor_rect = pygame.Rect(0, BASE_HEIGHT - BASE_HEIGHT / 50, BASE_WIDTH, 10)
-    ceiling_rect = pygame.Rect(0, 0, BASE_WIDTH, 10)
-    pygame.draw.rect(win, COLOURS[0], floor_rect)
-    pygame.draw.rect(win, COLOURS[0], ceiling_rect)
-    win.blit(player_img, (player_x, player_y))
-    for platform in platforms:
-        platform.display(win)
+        # Simple vertical movement with collision (can add stepping logic if needed)
+        player_y += y_vel
+        player_rect = pygame.Rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE)
 
-    score_text = text_font.render(f"{score + points / 1000:.2f}", True, (255, 255, 255))
-    score_rect = score_text.get_rect()
-    score_rect.topright = (BASE_WIDTH - 20, 20)
-    win.blit(score_text, score_rect)
+        points = ((((BASE_HEIGHT - player_y) ** 1.12) - 100) / 1.9) / 1000
+        score += points
 
-    pygame.display.update()
+        for platform in platforms:
+            plat_rect = platform.rect()
+            if player_rect.colliderect(plat_rect):
+                if y_vel > 0 and player_rect.bottom - y_vel <= plat_rect.top:
+                    player_y = plat_rect.top - PLAYER_SIZE
+                    y_vel = 0
+                    isJump = False
+                elif y_vel < 0 and player_rect.top - y_vel >= plat_rect.bottom:
+                    player_y = plat_rect.bottom
+                    y_vel = 0
 
-while run:
+        # Floor boundary
+        if player_y + PLAYER_SIZE >= BASE_HEIGHT - 10:
+            player_y = BASE_HEIGHT - PLAYER_SIZE - 10
+            y_vel = 0
+            isJump = False
+        elif player_y <= 10:
+            player_y = 10
+            y_vel = 0
+            y_vel += gravity
+
+        # Draw
+        win.fill((50, 50, 50))
+        floor_rect = pygame.Rect(0, BASE_HEIGHT - BASE_HEIGHT / 50, BASE_WIDTH, 10)
+        ceiling_rect = pygame.Rect(0, 0, BASE_WIDTH, 10)
+        pygame.draw.rect(win, COLOURS[0], floor_rect)
+        pygame.draw.rect(win, COLOURS[0], ceiling_rect)
+        win.blit(player_img, (player_x, player_y))
+        for platform in platforms:
+            platform.display(win)
+
+        score_text = text_font.render(f"{points:.2f} + {score:.2f}\n{time.time() - start_time:.1f}", True, (255, 255, 255))
+        score_rect = score_text.get_rect()
+        score_rect.topright = (BASE_WIDTH - 20, 20)
+        win.blit(score_text, score_rect)
+
+        pygame.display.update()
+
     clock.tick(40)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
     win.fill((50, 50, 50))
-    score_text = text_font.render(f"your score: {score + points / 1000:.2f}", True, (255, 255, 255))
+    score_text = text_font.render(f"your score: {score:.2f}", True, (255, 255, 255))
+    print(f"your score: {score:.2f}")
     score_rect = score_text.get_rect()
     score_rect.topright = (BASE_WIDTH - 20, 20)
     win.blit(score_text, score_rect)
     pygame.display.update()
+    time.sleep(10)
+
+clock = pygame.time.Clock()
+run = True
+# Create six buttons in two rows of three
+buttons = []
+button_names = [["1 min", "start_time + 60 - time.time() >= 0"], ["5 min", ""], ["10 min", ""], 
+                ["100 pt", ""], ["500 pt", ""], ["10k pt", ""], 
+                ["infinite", "True"], ["_", "True"], ["_", "True"]]
+button_formulas = [""]
+for i in range(9):
+    x = 50 + (i % 3) * 140
+    y = 200 + (i // 3) * 100
+    buttons.append(Button(button_names[i][0], pygame.Rect(x, y, 120, 50), COLOURS[i % 3]))
+
+# ====== MENU LOOP ======
+# selected_mode = None
+while True:
+    clock.tick(30)
+    draw_start_screen(buttons)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            for i, btn in enumerate(buttons):
+                if btn.is_clicked(pos):
+                    # selected_mode = i + 1
+                    the_game(button_names[i][1])
 
 pygame.quit()

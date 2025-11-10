@@ -19,8 +19,6 @@
 #     r1, r2, r3 = random.randint(0, 3), random.randint(0, 3), random.randint(0, 3)
 #     print(f"{p[r1]}|{p[r2]}|{p[r3]}")
 
-
-
 # screen = 500
 # screen -= screen / 25
 # section = screen / 10
@@ -42,14 +40,25 @@
 # for i in range(1, 501):
 #     print(500 // (i ** 0.5))
 
-import random
+# import random
 
-score = 0
+# score = 0
 
-for i in range(1, 481):
-    # points = random.randint(1, 481)
-    # score += int((points ** 0.6))
-    # print(f"{score} + {int((points ** 0.6))}, {points}")
-    # score += int((i ** 0.5))
-    # score += int(((i ** 1.119) - 50) / 1.8)
-    print(f"{int(((i ** 1.119) - 50) / 1.9)}, {i}")
+# for i in range(1, 481):
+#     # points = random.randint(1, 481)
+#     # score += int((points ** 0.6))
+#     # print(f"{score} + {int((points ** 0.6))}, {points}")
+#     # score += int((i ** 0.5))
+#     # score += int(((i ** 1.119) - 50) / 1.8)
+#     print(f"{int(((i ** 1.119) - 50) / 1.9)}, {i}")
+
+# test = "True"
+
+# while eval(test):
+#     print("meow")
+
+from time import time
+
+start_time = time()
+while start_time + 10 - time() >= 0:
+    print(start_time + 10 - time())
