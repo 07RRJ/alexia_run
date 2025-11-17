@@ -9,15 +9,15 @@
 # platform = f"{colour[platform_variant]} {platform_y[platform_variant][randint(0, 2)]}"
 # print(platform)
 
-# import random
-
 # # random.seed(7)
 
-# p = ["#__", "_#_", "__#", "#_#"]
-# # "#|||#|||#|||#"
-# for i in range(100):
-#     r1, r2, r3 = random.randint(0, 3), random.randint(0, 3), random.randint(0, 3)
-#     print(f"{p[r1]}|{p[r2]}|{p[r3]}")
+import random
+
+p = ["#__", "_#_", "__#", "#_#"]
+# "#|||#|||#|||#"
+for i in range(100):
+    r1, r2, r3 = random.randint(0, 3), random.randint(0, 3), random.randint(0, 3)
+    print(f"{p[r1]}|{p[r2]}|{p[r3]}")
 
 # screen = 500
 # screen -= screen / 25
@@ -57,8 +57,8 @@
 # while eval(test):
 #     print("meow")
 
-from time import time
+# from time import time
 
-start_time = time()
-while start_time + 10 - time() >= 0:
-    print(start_time + 10 - time())
+# start_time = time()
+# while start_time + 10 - time() >= 0:
+#     print(start_time + 10 - time())

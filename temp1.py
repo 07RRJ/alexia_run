@@ -1,18 +1,60 @@
 import pygame, sys, os, random, time
 from dataclasses import dataclass
 
-pygame.init()
+# =====================================================
+#                 INITIAL SETUP
+# =====================================================
 
+def get_game_folder():
+    return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+pygame.init()
 BASE_WIDTH, BASE_HEIGHT = 500, 500
 win = pygame.display.set_mode((BASE_WIDTH, BASE_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("Alexia Run")
 
 text_font = pygame.font.SysFont("Arial", 30, bold=True)
-clock = pygame.time.Clock()
+PLAYER_SIZE = 30
+
+images_folder = os.path.join(get_game_folder(), "img")
+player_img = pygame.image.load(os.path.join(images_folder, "player.png")).convert_alpha()
+player_img = pygame.transform.scale(player_img, (PLAYER_SIZE, PLAYER_SIZE))
 
 COLOURS = [(50, 170, 60), (60, 50, 170), (170, 60, 50)]
 
-@dataclass
+screen_bottom = BASE_HEIGHT - BASE_HEIGHT / 25
+section = screen_bottom / 10
+sec = [i * section + BASE_HEIGHT / 25 for i in range(10)]
+
+PLATFORM_Y = [
+    [sec[7], sec[8], sec[9]],
+    [sec[4], sec[5], sec[6]],
+    [sec[1], sec[2], sec[3]],
+]
+
+clock = pygame.time.Clock()
+
+
+# =====================================================
+#                 DATA CLASSES
+# =====================================================
+
+@dataclass(slots=True)
+class N_Platform:
+    x: float
+    y: float
+    colour: tuple
+    rect: pygame.Rect
+
+    def move(self, dx: float):
+        self.x -= dx
+        self.rect.x = int(self.x)
+
+    def draw(self, surf):
+        pygame.draw.rect(surf, self.colour, self.rect)
+
+
+@dataclass(slots=True)
 class Button:
     text: str
     rect: pygame.Rect
@@ -27,56 +69,186 @@ class Button:
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos)
 
+
+# =====================================================
+#                 TERRAIN GENERATION
+# =====================================================
+
+def generate_platform_batch(start_index: int, count: int = 1):
+    """Generate 'count' terrain chunks starting at index 'start_index'."""
+    plats = []
+    for i in range(start_index, start_index + count):
+        rand = [random.randint(0, 2), random.randint(0, 2), random.randint(0, 2)]
+        for idx, item in enumerate(rand):
+            plat_x = 500 + i * 320 if idx in (0, 2) else 660 + i * 320
+            if item == 1:
+                y = PLATFORM_Y[idx][1]
+                plats.append(N_Platform(plat_x, y, COLOURS[0], pygame.Rect(plat_x, y, 120, 5)))
+            else:
+                if random.randint(0, 1):
+                    y1, y2 = PLATFORM_Y[idx][2], PLATFORM_Y[idx][0]
+                    plats.append(N_Platform(plat_x, y1, COLOURS[0], pygame.Rect(plat_x, y1, 120, 5)))
+                    plats.append(N_Platform(plat_x, y2, COLOURS[0], pygame.Rect(plat_x, y2, 120, 5)))
+                else:
+                    y = PLATFORM_Y[idx][item]
+                    plats.append(N_Platform(plat_x, y, COLOURS[0], pygame.Rect(plat_x, y, 120, 5)))
+    return plats
+
+
+# =====================================================
+#                 GAME LOOP
+# =====================================================
+
+def the_game(run_condition):
+    player_x = BASE_WIDTH // 10 - PLAYER_SIZE // 2
+    player_y = 350
+    y_vel = 0
+    gravity = 1
+    jump_power = 16
+    isJump = False
+
+    # initial platform buffer
+    platforms = generate_platform_batch(0, 60)
+    next_chunk_index = 60
+
+    score = 0
+    start_time = time.time()
+
+    move_x = 8  # same scroll speed as original
+    floor_rect = pygame.Rect(0, BASE_HEIGHT - BASE_HEIGHT / 50, BASE_WIDTH, 10)
+    ceiling_rect = pygame.Rect(0, 0, BASE_WIDTH, 10)
+
+    while run_condition(time.time() - start_time, score):
+        clock.tick(40)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+        if not isJump and keys[pygame.K_UP]:
+            isJump, y_vel = True, -jump_power
+        elif isJump and keys[pygame.K_DOWN]:
+            y_vel = jump_power
+
+        # physics
+        y_vel += gravity
+        player_y += y_vel
+        player_rect = pygame.Rect(player_x, player_y, PLAYER_SIZE, PLAYER_SIZE)
+
+        # score
+        points = ((((BASE_HEIGHT - player_y) ** 1.12) - 100) / 1.9) / 1000
+        score += points
+
+        # move platforms
+        for p in platforms:
+            p.move(move_x)
+
+        # remove offscreen platforms
+        while platforms and platforms[0].x < -200:
+            platforms.pop(0)
+
+        # dynamically extend terrain
+        rightmost_x = max(p.x for p in platforms)
+        while rightmost_x < BASE_WIDTH * 3:
+            new_plats = generate_platform_batch(next_chunk_index, 2)
+            platforms.extend(new_plats)
+            next_chunk_index += 2
+            rightmost_x = max(p.x for p in platforms)
+
+        # collision detection
+        for p in platforms:
+            if player_rect.colliderect(p.rect):
+                if y_vel > 0 and player_rect.bottom - y_vel <= p.rect.top:
+                    player_y = p.rect.top - PLAYER_SIZE
+                    y_vel = 0
+                    isJump = False
+                elif y_vel < 0 and player_rect.top - y_vel >= p.rect.bottom:
+                    player_y = p.rect.bottom
+                    y_vel = 0
+
+        # floor / ceiling bounds
+        if player_y + PLAYER_SIZE >= BASE_HEIGHT - 10:
+            player_y = BASE_HEIGHT - PLAYER_SIZE - 10
+            y_vel = 0
+            isJump = False
+        elif player_y <= 10:
+            player_y = 10
+            y_vel = 0
+
+        # ---------------- DRAW ----------------
+        win.fill((50, 50, 50))
+        pygame.draw.rect(win, COLOURS[0], floor_rect)
+        pygame.draw.rect(win, COLOURS[0], ceiling_rect)
+        win.blit(player_img, (player_x, player_y))
+
+        for p in platforms:
+            p.draw(win)
+
+        # score + time top-right corner
+        score_text = text_font.render(f"{points:.2f} + {score:.2f}", True, (255, 255, 255))
+        win.blit(score_text, (BASE_WIDTH - 220, 20))
+        elapsed = time.time() - start_time
+        time_text = text_font.render(f"{elapsed:.1f}s", True, (255, 255, 255))
+        win.blit(time_text, (BASE_WIDTH - 220, 50))
+
+        pygame.display.update()
+
+    # ---------------- END SCREEN ----------------
+    elapsed = time.time() - start_time
+    win.fill((50, 50, 50))
+    score_text = text_font.render(f"Your score: {score:.2f}", True, (255, 255, 255))
+    time_text = text_font.render(f"It took: {elapsed:.1f}s", True, (255, 255, 255))
+    win.blit(score_text, score_text.get_rect(center=(BASE_WIDTH // 2, BASE_HEIGHT // 2 - 30)))
+    win.blit(time_text, time_text.get_rect(center=(BASE_WIDTH // 2, BASE_HEIGHT // 2 + 20)))
+    pygame.display.flip()
+    pygame.time.wait(4000)
+
+
+# =====================================================
+#                 MENU + BUTTONS
+# =====================================================
+
 def draw_start_screen(buttons):
     win.fill((30, 30, 30))
-    title = text_font.render("Select Game Mode", True, (255, 255, 255))
+    title = text_font.render("Alexia run", True, (255, 255, 255))
     win.blit(title, (BASE_WIDTH // 2 - title.get_width() // 2, 70))
     for btn in buttons:
         btn.draw(win)
     pygame.display.flip()
 
-def the_game(mode):
-    start_time = pygame.time.get_ticks()
-    countdown = 3
-    run = True
-    while run:
-        clock.tick(40)
-        win.fill((50, 50, 50))
-        elapsed = (pygame.time.get_ticks() - start_time) / 1000
-        if elapsed < countdown:
-            text = text_font.render(f"Starting in: {countdown - int(elapsed)}", True, (255, 255, 255))
-            win.blit(text, (BASE_WIDTH // 2 - text.get_width() // 2, BASE_HEIGHT // 2))
-        else:
-            # Example gameplay placeholder
-            text = text_font.render(f"Game started! Mode: {mode}", True, (255, 255, 255))
-            win.blit(text, (BASE_WIDTH // 2 - text.get_width() // 2, BASE_HEIGHT // 2))
-        pygame.display.flip()
 
+def main_menu():
+    # time- and score-based modes (no eval)
+    modes = [
+        ("1 min", lambda t, s: t < 60),
+        ("5 min", lambda t, s: t < 300),
+        ("10 min", lambda t, s: t < 600),
+        ("100 pt", lambda t, s: s <= 100),
+        ("500 pt", lambda t, s: s <= 500),
+        ("5k pt", lambda t, s: s <= 5000),
+        ("Infinite", lambda t, s: True)
+    ]
+
+    buttons = []
+    for i, (label, _) in enumerate(modes):
+        x = 50 + (i % 3) * 140
+        y = 200 + (i // 3) * 100
+        buttons.append(Button(label, pygame.Rect(x, y, 120, 50), COLOURS[i % 3]))
+
+    while True:
+        clock.tick(30)
+        draw_start_screen(buttons)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
-    pygame.quit()
-    sys.exit()
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                for (label, cond), btn in zip(modes, buttons):
+                    if btn.is_clicked(pos):
+                        the_game(cond)
 
-# Create six buttons in two rows of three
-buttons = []
-for i in range(9):
-    x = 80 + (i % 3) * 140
-    y = 200 + (i // 3) * 100
-    buttons.append(Button(f"Mode {i+1}", pygame.Rect(x, y, 120, 50), COLOURS[i % 3]))
 
-# ====== MENU LOOP ======
-selected_mode = None
-while not selected_mode:
-    clock.tick(30)
-    draw_start_screen(buttons)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            pos = pygame.mouse.get_pos()
-            for i, btn in enumerate(buttons):
-                if btn.is_clicked(pos):
-                    selected_mode = i + 1
-the_game(selected_mode)
+if __name__ == "__main__":
+    main_menu()
