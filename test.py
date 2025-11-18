@@ -11,13 +11,13 @@
 
 # # random.seed(7)
 
-import random
+# import random
 
-p = ["#__", "_#_", "__#", "#_#"]
-# "#|||#|||#|||#"
-for i in range(100):
-    r1, r2, r3 = random.randint(0, 3), random.randint(0, 3), random.randint(0, 3)
-    print(f"{p[r1]}|{p[r2]}|{p[r3]}")
+# p = ["#__", "_#_", "__#", "#_#"]
+# # "#|||#|||#|||#"
+# for i in range(100):
+#     r1, r2, r3 = random.randint(0, 3), random.randint(0, 3), random.randint(0, 3)
+#     print(f"{p[r1]}|{p[r2]}|{p[r3]}")
 
 # screen = 500
 # screen -= screen / 25
